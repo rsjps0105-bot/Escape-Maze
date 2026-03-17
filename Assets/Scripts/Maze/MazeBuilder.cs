@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 public class MazeBuilder : MonoBehaviour
 {
@@ -15,17 +16,48 @@ public class MazeBuilder : MonoBehaviour
         }
     }
 
-    [Header("Prefab")]
+    [System.Serializable]
+    public struct GridPos
+    {
+        public int x;
+        public int y;
+
+        public GridPos(int x, int y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    [Header("Wall Prefab")]
     public GameObject wallPrefab;
+
+    [Header("Floor Prefab")]
+    public GameObject floorPrefab;
 
     [Header("Wall Settings")]
     public float wallHeight = 2.5f;
     public float wallThickness = 1f;
     public float unitScale = 1f;
 
+    [Header("Floor Settings")]
+    public bool buildFloor = true;
+    public int mazeWidth = 20;
+    public int mazeHeight = 20;
+    public float floorY = -0.1f;
+    public float floorThickness = 0.2f;
+
     [Header("Build")]
     public bool buildOnStart = true;
     public bool clearBeforeBuild = true;
+
+    [Header("Pit Holes (床を作らないマス)")]
+    public GridPos[] pitTiles =
+    {
+        new GridPos(5, 5),
+        new GridPos(5, 6),
+        new GridPos(11, 3),
+    };
 
     private WallSegment[] walls =
     {
@@ -127,9 +159,20 @@ public class MazeBuilder : MonoBehaviour
             return;
         }
 
+        if (buildFloor && floorPrefab == null)
+        {
+            Debug.LogError("buildFloor が ON なのに floorPrefab が設定されていません。");
+            return;
+        }
+
         if (clearBeforeBuild)
         {
             ClearChildren();
+        }
+
+        if (buildFloor)
+        {
+            BuildFloorTiles();
         }
 
         for (int i = 0; i < walls.Length; i++)
@@ -145,6 +188,42 @@ public class MazeBuilder : MonoBehaviour
         {
             DestroyImmediate(transform.GetChild(i).gameObject);
         }
+    }
+
+    private void BuildFloorTiles()
+    {
+        HashSet<Vector2Int> pits = new HashSet<Vector2Int>();
+        for (int i = 0; i < pitTiles.Length; i++)
+        {
+            pits.Add(new Vector2Int(pitTiles[i].x, pitTiles[i].y));
+        }
+
+        for (int z = 0; z < mazeHeight; z++)
+        {
+            for (int x = 0; x < mazeWidth; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, z);
+
+                if (pits.Contains(cell))
+                    continue;
+
+                CreateFloorTile(x, z);
+            }
+        }
+    }
+
+    private void CreateFloorTile(int x, int z)
+    {
+        float tileSize = unitScale;
+        Vector3 pos = new Vector3(
+            x * tileSize + tileSize * 0.5f,
+            floorY,
+            z * tileSize + tileSize * 0.5f
+        );
+
+        GameObject floor = Instantiate(floorPrefab, pos, Quaternion.identity, transform);
+        floor.name = $"Floor_{x}_{z}";
+        floor.transform.localScale = new Vector3(tileSize, floorThickness, tileSize);
     }
 
     private void CreateWall(WallSegment segment)

@@ -19,6 +19,8 @@ public class EnemyVision : MonoBehaviour
     [Header("Refs")]
     public Transform eye;
 
+    private bool wasSeeingTarget = false;
+
     void Awake()
     {
         if (target == null)
@@ -28,17 +30,42 @@ public class EnemyVision : MonoBehaviour
         }
     }
 
+    void Update()
+    {
+        bool canSee = CanSeeTarget();
+
+        if (canSee && !wasSeeingTarget)
+        {
+            if (BGMManager.Instance != null)
+                BGMManager.Instance.AddChaser();
+        }
+        else if (!canSee && wasSeeingTarget)
+        {
+            if (BGMManager.Instance != null)
+                BGMManager.Instance.RemoveChaser();
+        }
+
+        wasSeeingTarget = canSee;
+    }
+
+    void OnDisable()
+    {
+        if (wasSeeingTarget && BGMManager.Instance != null)
+        {
+            BGMManager.Instance.RemoveChaser();
+            wasSeeingTarget = false;
+        }
+    }
+
     public bool CanSeeTarget()
     {
         if (target == null) return false;
 
         Vector3 origin = eye ? eye.position : transform.position + Vector3.up * 1.5f;
 
-        // プレイヤーの胸あたりを見る（足元だと床/段差に邪魔されやすい）
         Vector3 targetPos = target.position + Vector3.up * 1.0f;
         Vector3 dir = targetPos - origin;
 
-        // デバッグ用
         Debug.DrawRay(origin, dir.normalized * viewDistance, Color.red);
 
         float dist = dir.magnitude;
@@ -47,7 +74,6 @@ public class EnemyVision : MonoBehaviour
         float angle = Vector3.Angle(transform.forward, dir);
         if (angle > viewAngle * 0.5f) return false;
 
-        // 障害物レイヤーだけを見る（ObstacleMaskに壁だけ入れる）
         if (Physics.Raycast(origin, dir.normalized, dist, obstacleMask, QueryTriggerInteraction.Ignore))
             return false;
 

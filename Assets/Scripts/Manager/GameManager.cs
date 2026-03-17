@@ -1,15 +1,27 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TMPro;
+using System.Collections;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
-    public GameObject loseUI;
+    [Header("UI")]
     public GameObject resultUI;
+    public TMP_Text resultTitleText;
+    public TMP_Text resultMessageText;
 
-    bool isGameOver;
-    bool isResult;
+    [Header("Delay")]
+    public float resultDelay = 2f;
+
+    [Header("SE")]
+    public AudioSource seSource;
+    public AudioClip clearSE;
+    public AudioClip gameOverSE;
+
+    bool isFinished;
+    float elapsedTime;
 
     void Awake()
     {
@@ -18,38 +30,79 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (!isGameOver) return;
-
-        if (!isResult)
+        if (!isFinished)
         {
-            if (Input.GetKeyDown(KeyCode.Return))
-            {
-                ShowResult();
-            }
+            elapsedTime += Time.deltaTime;
+            return;
         }
-        else
+
+        if (resultUI != null && resultUI.activeSelf && Input.GetKeyDown(KeyCode.Return))
         {
-            if (Input.GetKeyDown(KeyCode.Return))
-            {
-                SceneManager.LoadScene("TitleScene");
-            }
+            SceneManager.LoadScene("TitleScene");
         }
     }
 
     public void GameOver()
     {
-        isGameOver = true;
+        if (isFinished) return;
+        isFinished = true;
 
-        loseUI.SetActive(true);
+        StopAllBGM();
 
-        //Time.timeScale = 0f;   // ÉQÅ[ÉÄí‚é~
+        if (seSource != null && gameOverSE != null)
+        {
+            seSource.PlayOneShot(gameOverSE);
+        }
+
+        StartCoroutine(ShowResultDelay(false));
     }
 
-    void ShowResult()
+    public void GameClear()
     {
-        isResult = true;
+        if (isFinished) return;
+        isFinished = true;
 
-        loseUI.SetActive(false);
-        resultUI.SetActive(true);
+        StopAllBGM();
+
+        if (seSource != null && clearSE != null)
+        {
+            seSource.PlayOneShot(clearSE);
+        }
+
+        StartCoroutine(ShowResultDelay(true));
+    }
+
+    IEnumerator ShowResultDelay(bool isClear)
+    {
+        yield return new WaitForSeconds(resultDelay);
+
+        if (resultUI != null) resultUI.SetActive(true);
+        if (resultTitleText != null) resultTitleText.text = "RESULT";
+
+        if (resultMessageText != null)
+        {
+            if (isClear)
+                resultMessageText.text = "CLEAR TIME : " + FormatTime(elapsedTime);
+            else
+                resultMessageText.text = "ÉNÉäÉAÇ≈Ç´Ç»Ç©Ç¡ÇΩÅc";
+        }
+    }
+
+    void StopAllBGM()
+    {
+        if (BGMManager.Instance == null) return;
+
+        if (BGMManager.Instance.normalBGM != null)
+            BGMManager.Instance.normalBGM.Stop();
+
+        if (BGMManager.Instance.chaseBGM != null)
+            BGMManager.Instance.chaseBGM.Stop();
+    }
+
+    string FormatTime(float time)
+    {
+        int minutes = Mathf.FloorToInt(time / 60f);
+        int seconds = Mathf.FloorToInt(time % 60f);
+        return minutes.ToString("00") + ":" + seconds.ToString("00");
     }
 }
