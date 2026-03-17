@@ -15,6 +15,9 @@ public class GameManager : MonoBehaviour
     [Header("Delay")]
     public float resultDelay = 2f;
 
+    [Header("Time Limit")]
+    public float timeLimit = 180f; // 3ï™
+
     [Header("SE")]
     public AudioSource seSource;
     public AudioClip clearSE;
@@ -33,11 +36,18 @@ public class GameManager : MonoBehaviour
         if (!isFinished)
         {
             elapsedTime += Time.deltaTime;
+
+            if (elapsedTime >= timeLimit)
+            {
+                GameOver();
+            }
+
             return;
         }
 
         if (resultUI != null && resultUI.activeSelf && Input.GetKeyDown(KeyCode.Return))
         {
+            Time.timeScale = 1f;
             SceneManager.LoadScene("TitleScene");
         }
     }
@@ -84,7 +94,7 @@ public class GameManager : MonoBehaviour
             if (isClear)
                 resultMessageText.text = "CLEAR TIME : " + FormatTime(elapsedTime);
             else
-                resultMessageText.text = "TRY AGAINÅc";
+                resultMessageText.text = "GAME OVER";
         }
     }
 
