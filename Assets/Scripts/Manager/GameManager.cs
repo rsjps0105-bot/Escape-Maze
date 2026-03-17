@@ -84,7 +84,7 @@ public class GameManager : MonoBehaviour
             if (isClear)
                 resultMessageText.text = "CLEAR TIME : " + FormatTime(elapsedTime);
             else
-                resultMessageText.text = "クリアできなかった…";
+                resultMessageText.text = "TRY AGAIN…";
         }
     }
 
